@@ -3,11 +3,11 @@ ID,LHS,LHS Type,RHS,Probability
 2,S,nonterminal,NP VP_adv,0.136
 3,S,nonterminal,NP VP,0.334
 4,S,nonterminal,NP VB_ind,0.204
-5,NP,nonterminal,DT NN,0.617
-6,NP,nonterminal,CD NN,0.140
-7,NP,nonterminal,ADJ NP,0.048
+5,NP,nonterminal,DT NN,0.597
+6,NP,nonterminal,CD NN,0.120
+7,NP,nonterminal,ADJ NP,0.038
 8,ADJ,nonterminal,INT JJ,1.0
-9,NP,nonterminal,NP PNP,0.195
+9,NP,nonterminal,NP PNP,0.245
 10,PNP,nonterminal,PP NP,1.0
 11,VP_mod,nonterminal,MOD VPM_adv,0.408
 12,VP_mod,nonterminal,MOD VPM,0.592

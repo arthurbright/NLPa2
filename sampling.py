@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import random
 from typing import Dict, List, Sequence, Tuple
+from code.task2 import *
+from collections import defaultdict
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,7 +207,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.num_samples < 1:
+    if args.num_samples < 0:
         raise SystemExit('--num-samples must be >= 1')
     if args.top_k < 0:
         raise SystemExit('--top-k must be >= 0')
@@ -257,13 +259,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f'Loaded checkpoint: {checkpoint_path}')
     print(f'Device: {device}')
     print(f'Prompt: {args.prompt!r}')
-    print(f'Top {top_k} next-token probabilities:')
-    for idx in range(top_k):
-        token_id = int(top_indices[idx].item())
-        prob = float(top_probs[idx].item())
-        token = artifacts.id_to_token[token_id]
-        print(f'  {token}\t{prob:.6f}')
-    print('')
+    # print(f'Top {top_k} next-token probabilities:')
+    # for idx in range(top_k):
+    #     token_id = int(top_indices[idx].item())
+    #     prob = float(top_probs[idx].item())
+    #     token = artifacts.id_to_token[token_id]
+    #     print(f'  {token}\t{prob:.6f}')
+    # print('')
 
     sampled_sentences: List[str] = []
     for sample_idx in range(args.num_samples):
@@ -286,18 +288,68 @@ def main(argv: Sequence[str] | None = None) -> int:
             for sentence in sampled_sentences:
                 f.write(sentence + '\n')
 
-    print_probs(model, device, artifacts, ['cats'])
-    print_probs(model, device, artifacts, ['mice'])
+    # print_agg(model, device, artifacts, ['the', 'students', 'at', 'the', 'teachers', 'at', 'the', 'teachers'])
+    
 
+    # for v in pos_to_token['verb_direct']:
+    #     print(v)
+    #     p = aggregate_by_pos(get_probs(model, device, artifacts, ['the', 'teachers', v]))
+    #     if p['determiner'] < 0.7:
+    #         print("VIOLATION:", v, p['determiner'])
+    # for v in pos_to_token['verb_subjectless']:
+    #     print(v)
+    #     p = aggregate_by_pos(get_probs(model, device, artifacts, ['the', 'teachers', v]))
+    #     if p['determiner'] > 0.3:
+    #         print("VIOLATION:", v, p['determiner'])
+
+    # print dists
+    id = 30
+    with open('pcfg_scratch.csv', 'a') as f:
+        for pos, prefix in [
+            ('determiner', []),
+            ('number', []),
+            ('preposition', ['the', 'teacher', 'laughed']),
+            ('adjective', ['very']),
+            ('noun', ['the']),
+            ('verb_direct', ['the', 'teacher']),
+            ('verb_subjectless', ['the', 'teacher']),
+            ('adverb', ['the', 'teacher', 'called', 'the', 'students']),
+            ('intensifier', []),
+            ('modifier', ['the', 'teacher']),
+        ]:
+            p = get_probs(model, device, artifacts, prefix)
+            total = 0.0
+            for v in pos_to_token[pos]:
+                total += p[v]
+            
+            for v in pos_to_token[pos]:
+                f.write(f'{id},{pos_name_to_abrv[pos]},preterminal,{v},{p[v]/total}\n')
+                id += 1
 
     return 0
 
-def print_probs(model, device, a: LoadedArtifacts, tokens):
+def get_probs(model, device, a: LoadedArtifacts, tokens):
+    res = {}
     prefix_ids = [a.bos_id] + [a.token_to_id[t] for t in tokens]
     probs = _next_token_probs(model, prefix_ids=prefix_ids, device=device)
     for i in range(len(probs)):
-        print(f'  {a.id_to_token[i]}\t{probs[i]:.10f}')
+        res[a.id_to_token[i]] = probs[i]
+    return res
+
+def aggregate_by_pos(p):
+    res = defaultdict(float)
+    for k, v in p.items():
+        pos = token_to_pos[k]
+        res[pos] += v
+    return res
+
+def print_probs(p):
+    for k, v in sorted(p.items(), key=lambda item: item[1], reverse=True)[:5]:
+        print(f'  {k}\t{v:.10f}')
     print('')
+
+def print_agg(model, device, a: LoadedArtifacts, tokens):
+    print_probs(aggregate_by_pos(get_probs(model, device, a, tokens)))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,51 @@
+S = NP VP_modifier
+S = NP VP_adverb
+S = NP VP
+S = NP VB_indirect
+
+NP = DT NN     (the cats)
+NP = CD NN     (two cats)
+NP = ADJ NP   (very small the cats)
+ADJ = INT JJ
+
+NP = NP PNP
+PNP = PP NP
+
+-----------------------------------------
+VP_modifier = MOD VPM_adverb
+VPM_adverb = VPM ADV
+
+VP_adverb = VP ADV
+
+VP = VB_direct NP
+VP = VB_subjectless PNP
+
+VPM = VB_direct NP
+VP = VB_subjectless PNP
+
+Verb types:
+TODO: subjectless. Must end, or use preposition. (eg laugh). Can have modifier, but then also must have preposition.
+    Can have ending adverb, but then also must have preposition
+TODO: direct. no preposition, mandatory subject. eg praised?. Can have modifier. Can have ending adverb.
+
+Solving system of equations for branches of VP:
+VB_ind vs VB_ind with PP: 0.671:0.329
+V_ind (p or not P) vs V_dir: 0.435:0.336
+
+dir: VPadv:no adv = 0.611:0.157
+indir: 0.604:0.151   (same)
+
+VP_adv:(VB_dir + VB_ind + VB_ind_solo) = 0.154:0.607
+VB_ind_solo: VB_ind = 0.671:0.329
+(VB_ind + VB_ind_solo):VB_dir = 0.435:0.336
+sum = 1
+
+a/(b + c + d) = 0.154/0.607
+d/c = 0.671/0.329
+(c + d)/b = 0.435/0.336
+a + b + c + d = 1
+
+VP_adv = 0.202
+VB_dir = 0.348
+VB_ind = 0.148
+VB_ind_solo = 0.302

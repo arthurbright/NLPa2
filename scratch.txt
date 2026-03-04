@@ -1,0 +1,101 @@
+001: the libraries admires a idea
+002: the professor waited
+003: the cats see the forests home
+004: this machines in the machines by a machines at ancient by a doctor the car at a river shout at one cities inside
+005: two rivers watch this cities
+006: very serious the project by a rivers built one cities
+007: a city arrive
+008: six cars coughed
+009: a teachers built this dogs
+010: nine rivers cried
+011: the students sleeps in this dogs
+012: the dogs smiled
+
+S = NP VP
+
+NP = DT NN     (the cats)
+NP = CD NN     (two cats)
+NP = ADV JJ DT NN   (very small the cats)   (intensifiers only)  (can be subjecgt or object) (only first one in prep chain? no)
+NP = JJ NN      (??)
+
+NP = NP PP NP         (three dogs with one car)
+NP = NP PP NP PP NP
+NP = NP PP NP PP NP PP NP
+NP = NP PP NP PP NP PP NP PP NP
+
+VP = VB       (smiles)    (different verb?)
+VP = VB NP       (finds a cat)
+VP = VB PP NP    (wanders at a home)
+VP = VB [PP] NP ADV  (laugh in this rivers nearby)   (agnostic of PP, but NP neccesary (?), NP can use preps)
+VP = VB NP ADV (prefers a cities tomorrow)
+Double adverb?? " yesterday abroad"
+
+VP = ADV2 VB [PP] NN [ADV]  (would laughed...)  % can this happen independently? NO; needs prep?
+
+
+two types of adverbs? (intensifiers, normal)
+two types of verbs? (with subj, no subj?)
+- no prep: laugh, shout, cough, collapse,, sleep, arrive, wander, dance
+- with prep: arrive, pause, watch, see, call, chase, solve, cough
+
+
+exceptions: 005: very big two gardens with happy by six stories at the songs this dog departs
+
+
+
+Preterminals:
+CD (number)
+DT (determiner)
+IN (preposition)
+JJ (adjective)
+NN (nount)
+VB (verb)
+RB (adverb)
+MO (modal?) eg can, could, will, would, may, might
+
+Preterminals
+CD (number):     eight, five, four, nine, one, seven, six, ten, three, two
+DT (determiner): a, the, this
+IN (preposition): at, by, from, in, inside, near, on, outside, with
+JJ (adjective):  ancient, big, brave, bright, calm, careful, eager, gentle, happy, honest, kind, modern, noisy, quick, quiet, serious, slow, small, smart, wild
+NN (noun): artist, artists, bridge, bridges, car, cars, cat, cats, cities, city, doctor, doctors, dog, dogs, forest, forests, garden, gardens, home, idea, ideas, libraries, library, machine, machines, music, planet, planets, professor, professors, project, projects, river, rivers, songs, stories, story, student, students, teacher, teachers
+VB (verb): admire, admired, admires
+    arrive, arrived, arrives
+    build, builds, built
+    call, called, calls
+    can, could??
+    chase, chased, chases
+    collapse, collapsed, collapses
+    cough, coughed, coughs
+    cry, cried, cries
+    dance, danced, dances
+    depart, departed, departs
+    find, finds, found
+    follow, followed, follows
+    help, helped, helps
+    laugh, laughed, laughs
+    may??
+    meet, meets, met
+    might??
+    move, moved, moves
+    pause, paused, pauses
+    praise, praised, praises
+    prefer, preferred, prefers
+    saw, see, sees
+    should??
+    shout, shouted, shouts
+    sleep, sleeps, slept
+    smile, smiled, smiles
+    sneeze, sneezed, sneezes
+    solve, solved, solves
+    travel, traveled, travels
+    visit, visited, visits
+    wait, waited, waits
+    wander, wandered, wanders
+    watch, watched, watches
+    will?? would??
+RB (adverb): abroad, ahead, anywhere, away, back, downstairs, elsewhere, everywhere, later, nearby, quite, really, somewhere, soon, today, tomorrow, tonight, upstairs, very, yesterday
+
+SPecial adverbs: very, quite, really??
+
+S = NP VP
