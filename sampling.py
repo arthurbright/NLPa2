@@ -16,8 +16,11 @@ from dataclasses import dataclass
 from pathlib import Path
 import random
 from typing import Dict, List, Sequence, Tuple
+
+from torch import Tensor
 from code.task2 import *
 from collections import defaultdict
+from code.grad_descent import *
 
 
 @dataclass(frozen=True, slots=True)
@@ -258,7 +261,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     print(f'Loaded checkpoint: {checkpoint_path}')
     print(f'Device: {device}')
-    print(f'Prompt: {args.prompt!r}')
+    # print(f'Prompt: {args.prompt!r}')
     # print(f'Top {top_k} next-token probabilities:')
     # for idx in range(top_k):
     #     token_id = int(top_indices[idx].item())
@@ -288,7 +291,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             for sentence in sampled_sentences:
                 f.write(sentence + '\n')
 
-    # print_agg(model, device, artifacts, ['the', 'students', 'at', 'the', 'teachers', 'at', 'the', 'teachers'])
+    # print_probs(get_probs(model, device, artifacts, ['a'], bos=False))
+    def _get_probs(prefix):
+        return get_probs(model, device, artifacts, prefix)
+
     
 
     # for v in pos_to_token['verb_direct']:
@@ -303,38 +309,99 @@ def main(argv: Sequence[str] | None = None) -> int:
     #         print("VIOLATION:", v, p['determiner'])
 
     # print dists
-    id = 30
-    with open('pcfg_scratch.csv', 'a') as f:
-        for pos, prefix in [
-            ('determiner', []),
-            ('number', []),
-            ('preposition', ['the', 'teacher', 'laughed']),
-            ('adjective', ['very']),
-            ('noun', ['the']),
-            ('verb_direct', ['the', 'teacher']),
-            ('verb_subjectless', ['the', 'teacher']),
-            ('adverb', ['the', 'teacher', 'called', 'the', 'students']),
-            ('intensifier', []),
-            ('modifier', ['the', 'teacher']),
-        ]:
-            p = get_probs(model, device, artifacts, prefix)
-            total = 0.0
-            for v in pos_to_token[pos]:
-                total += p[v]
-            
-            for v in pos_to_token[pos]:
-                f.write(f'{id},{pos_name_to_abrv[pos]},preterminal,{v},{p[v]/total}\n')
-                id += 1
 
+    #===============================================
+    # TASK 2: fill out csv
+    # id = 30
+    # with open('pcfg_scratch.csv', 'a') as f:
+    #     for pos, prefix in [
+    #         ('determiner', []),
+    #         ('number', []),
+    #         ('preposition', ['the', 'teacher', 'laughed']),
+    #         ('adjective', ['very']),
+    #         ('noun', ['the']),
+    #         ('verb_direct', ['the', 'teacher']),
+    #         ('verb_subjectless', ['the', 'teacher']),
+    #         ('adverb', ['the', 'teacher', 'called', 'the', 'students']),
+    #         ('intensifier', []),
+    #         ('modifier', ['the', 'teacher']),
+    #     ]:
+    #         p = get_probs(model, device, artifacts, prefix)
+    #         total = 0.0
+    #         for v in pos_to_token[pos]:
+    #             total += p[v]
+            
+    #         for v in pos_to_token[pos]:
+    #             f.write(f'{id},{pos_name_to_abrv[pos]},preterminal,{v},{p[v]/total}\n')
+    #             id += 1
+    # =================
+
+    # ====================================
+    # TASK 3: train on samples
+
+    assert set([artifacts.bos_id, artifacts.eos_id, artifacts.unk_id, artifacts.pad_id]) == set([0, 1, 2, 3])
+
+    def sample_prefixes(num_prefixes=5, max_len=6):
+        prefixes = []
+        for _i in range(num_prefixes):
+            print(_i)
+            prefix = []
+            for _ in range(random.randint(0, max_len)):
+                p = get_probs_int(prefix)
+                probs = list(p)[4:]
+                token_ids = range(4, 30)
+                token_id = random.choices(token_ids, probs)[0] - 4
+                prefix.append(token_id)
+            prefixes.append(prefix)
+        return prefixes
+    
+    def get_probs_int(tokens: list[int]):
+        prefix_ids = [artifacts.bos_id] + tokens
+        return _next_token_probs(model, prefix_ids=prefix_ids, device=device)
+    
+    R = 50
+    _vocab = list(range(26))
+    _model = CNFPCFG(R, _vocab)
+
+    # train(_model, sample_prefixes, get_probs_int, _vocab, epochs=50, lr=0.01)
+
+    word_probs = {}
+    # TASK 3: DFS all likely short words
+    def dfs(prefix, prob):
+        word_probs[prefix] = prob
+
+        if len(prefix) == 6:
+            return
+        
+        p = _get_probs(prefix)
+        for k, v in p.items():
+            if v > 0.0005:
+                dfs(prefix + k, prob * v)
+    
+    dfs("", 1.0)
+    print_probs(word_probs, -1)
+    word_probs_2 = {k:v for k, v in word_probs.items() if len(k) % 2 == 0}
+    print_probs(word_probs_2, -1)
+    print([k for k in word_probs_2])
+    print(len(word_probs_2))
+
+    # print_probs(get_probs(model, device, artifacts, 'am'))
+
+
+    #==========================================
     return 0
 
-def get_probs(model, device, a: LoadedArtifacts, tokens):
+def get_probs(model, device, a: LoadedArtifacts, tokens, bos = True):
     res = {}
-    prefix_ids = [a.bos_id] + [a.token_to_id[t] for t in tokens]
+    if bos:
+        prefix_ids = [a.bos_id] + [a.token_to_id[t] for t in tokens]
+    else:
+        prefix_ids = [a.token_to_id[t] for t in tokens]
     probs = _next_token_probs(model, prefix_ids=prefix_ids, device=device)
     for i in range(len(probs)):
         res[a.id_to_token[i]] = probs[i]
     return res
+
 
 def aggregate_by_pos(p):
     res = defaultdict(float)
@@ -343,9 +410,10 @@ def aggregate_by_pos(p):
         res[pos] += v
     return res
 
-def print_probs(p):
-    for k, v in sorted(p.items(), key=lambda item: item[1], reverse=True)[:5]:
-        print(f'  {k}\t{v:.10f}')
+def print_probs(p, TH = 0.0001):
+    for k, v in sorted(p.items(), key=lambda item: item[1], reverse=True):
+        if v > TH:
+            print(f'  {k}\t{v:.10f}')
     print('')
 
 def print_agg(model, device, a: LoadedArtifacts, tokens):

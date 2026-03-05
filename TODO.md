@@ -5,3 +5,8 @@ this machines in the machines by a machines at ancient by a doctor the car at a 
 
 
 - PNP likelihood is different for subject/object?
+
+
+task 3:
+- precompute huge list of prefixes?
+- prefix sampling ignores EOS
