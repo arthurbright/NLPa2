@@ -2,6 +2,7 @@
 50 nonterminals
 
 Lengths: 12, 16, 28, 32
+Hypothesis: 
 
 001: u v a m a b o u y z q r
 002: q r w x e f y z e i u v a b q r q r u v k l y z a b e f e f y z
@@ -27,7 +28,7 @@ Lengths: 12, 16, 28, 32
 002: a m e i q r u v e f i j y z e i q r w x i j m n q r u v q r u v
 003: y z e i a b e i m n q r c d e i y z s t m n s t u v a m i j y z
 
-
-a: b m
-c: d
+BOS: a c e y i q g m k s u o w
+2-grams: 'ou', 'wx', 'ij', 'ef', 'kl', 'yz', 'ab', 'qr', 'am', 'op', 'st', 'ei', 'mn', 'uv', 'cd', 'gh'
+Hypothesis: 
 

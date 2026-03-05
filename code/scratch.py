@@ -35,8 +35,8 @@ for k, v in sorted(seen.items(), key=lambda item: item[1], reverse=True):
     print(f"{k}: {v}")
 print(len(seen))
 
-seen2 = set()
-for k in ['', 'ab', 'abef', 'abei', 'abgh', 'abou', 'abqr', 'abst', 'am', 'amei', 'amou', 'amqr', 'amst', 'cd', 'cdef', 'cdei', 'cdgh', 'cdou', 'cdqr', 'cdst', 'ef', 'efam', 'efij', 'efkl', 'efyz', 'gh', 'gham', 'ghij', 'ghkl', 'ghyz', 'ij', 'ijam', 'ijmn', 'ijop', 'ijuv', 'ijwx', 'ijyz', 'kl', 'klam', 'klmn', 'klop', 'kluv', 'klwx', 'klyz', 'mn', 'mnei', 'mnou', 'mnqr', 'mnst', 'op', 'opei', 'opou', 'opqr', 'opst', 'qr', 'qruv', 'qrwx', 'st', 'stuv', 'stwx', 'uv', 'uvam', 'uvyz', 'wx', 'wxam', 'wxyz', 'yz', 'yzei', 'yzou', 'yzqr', 'yzst']:
-    for i in range(0, len(line), 2):
-        seen2.add(k[i:i + 2])
-print(seen2, len(seen2))
+any2 = set(['ou', 'wx', 'ij', 'ef', 'kl', 'yz', 'ab', 'qr', 'am', 'op', 'st', 'ei', 'mn', 'uv', 'cd', 'gh'])
+first4 = set(['uvam', 'abef', 'yzou', 'ghkl', 'amou', 'ijuv', 'abst', 'amqr', 'opei', 'klwx', 'abqr', 'cdef', 'efij', 'uvyz', 'amst', 'cdst', 'cdou', 'klmn', 'opqr', 'stwx', 'wxyz', 'cdqr', 'kluv', 'mnqr', 'stuv', 'abei', 'wxam', 'efkl', 'ijop', 'cdei', 'amei', 'mnei', 'opou', 'yzst', 'ijyz', 'mnst', 'abgh', 'klam', 'qruv', 'abou', 'cdgh', 'efam', 'mnou', 'klop', 'gham', 'qrwx', 'ijwx', 'yzqr', 'klyz', 'opst', 'ghyz', 'ijmn', 'ghij', 'yzei', 'efyz', 'ijam'])
+second4 = set(['abqr', 'uvyz', 'mnqr', 'abou', 'ijuv', 'cdgh', 'ijop', 'opei', 'ghkl', 'ijij', 'gham', 'mngh', 'kluv', 'efam', 'uvam', 'abei', 'opst', 'cdou', 'amou', 'opgh', 'yzei', 'cdef', 'mnei', 'amst', 'mnst', 'amei', 'qruv', 'stuv', 'efyz', 'cdei', 'wxyz', 'klwx', 'ijmn', 'efkl', 'opou', 'yzst', 'cdst', 'ghyz', 'ijqr', 'abst', 'klop', 'mnou', 'opqr', 'yzqr', 'qrwx', 'ijam', 'abgh', 'ghij', 'stwx', 'klyz', 'cdqr', 'klcd', 'efij', 'klmn', 'ijyz', 'yzou', 'klij', 'amqr', 'klam', 'abef', 'wxam', 'ijwx', 'ijcd'])
+
+print(second4 - first4)

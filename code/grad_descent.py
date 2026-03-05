@@ -33,6 +33,8 @@ class CNFPCFG(nn.Module):
         return F.softmax(self.start_logits, dim=-1)
 
     def inside(self, string):
+        if len(string) == 0:
+            return 0
         n = len(string)
         R = self.R
         rules = self.binary_rules()
@@ -65,17 +67,16 @@ class CNFPCFG(nn.Module):
         return torch.dot(start, chart[0, n-1])
     
     def next_token_dist(self, prefix, vocab):
-        with torch.no_grad():
-            base_prob = self.inside(prefix)
+        base_prob = self.inside(prefix)
+        
+        probs = []
+        for token in range(len(vocab)):
+            extended = prefix + [token]
+            p = self.inside(extended)
+            probs.append(p / base_prob)
             
-            probs = []
-            for token in range(len(vocab)):
-                extended = prefix + [token]
-                p = self.inside(extended)
-                probs.append(p / base_prob)
-                
-            probs = torch.stack(probs)
-            return probs / probs.sum()
+        probs = torch.stack(probs)
+        return probs / probs.sum()
 
 def train(model: CNFPCFG, sample_prefixes_fn, probs_fn, vocab, epochs=500, lr=1e-2):
     opt = torch.optim.Adam(model.parameters(), lr=lr)
@@ -87,6 +88,7 @@ def train(model: CNFPCFG, sample_prefixes_fn, probs_fn, vocab, epochs=500, lr=1e
         print("sampling prefixes...")
         prefixes = sample_prefixes_fn()
         
+        print("computing loss...")
         for prefix in prefixes:
             # true_dist = probs_fn(prefix)  # dict
             true_dist = {i: 1/26 for i in range(26)}

@@ -341,10 +341,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     assert set([artifacts.bos_id, artifacts.eos_id, artifacts.unk_id, artifacts.pad_id]) == set([0, 1, 2, 3])
 
-    def sample_prefixes(num_prefixes=5, max_len=6):
+    def sample_prefixes(num_prefixes=100, max_len=6):
         prefixes = []
         for _i in range(num_prefixes):
-            print(_i)
             prefix = []
             for _ in range(random.randint(0, max_len)):
                 p = get_probs_int(prefix)
@@ -363,29 +362,45 @@ def main(argv: Sequence[str] | None = None) -> int:
     _vocab = list(range(26))
     _model = CNFPCFG(R, _vocab)
 
-    # train(_model, sample_prefixes, get_probs_int, _vocab, epochs=50, lr=0.01)
+    train(_model, sample_prefixes, get_probs_int, _vocab, epochs=50, lr=0.01)
 
     word_probs = {}
     # TASK 3: DFS all likely short words
     def dfs(prefix, prob):
         word_probs[prefix] = prob
 
-        if len(prefix) == 6:
+        if len(prefix) == 0:
             return
         
         p = _get_probs(prefix)
         for k, v in p.items():
             if v > 0.0005:
-                dfs(prefix + k, prob * v)
+                if k[0] == '<':
+                    word_probs[prefix + ". "] = prob * v
+                else:
+                    dfs(prefix + k, prob * v)
     
-    dfs("", 1.0)
+    # dfs("", 1.0)
     print_probs(word_probs, -1)
-    word_probs_2 = {k:v for k, v in word_probs.items() if len(k) % 2 == 0}
+    word_probs_2 = {k:v for k, v in word_probs.items() if len(k) % 4 == 0}
     print_probs(word_probs_2, -1)
-    print([k for k in word_probs_2])
-    print(len(word_probs_2))
 
-    # print_probs(get_probs(model, device, artifacts, 'am'))
+    # find all aligned 2-grams
+    seen2 = set()
+    for k in word_probs_2:
+        for i in range(4, len(k), 4):
+            seen2.add(k[i:i + 4])
+    print(seen2, len(seen2))
+    print(len(word_probs_2))    
+    
+    # print_probs(get_probs(model, device, artifacts, 'yzstijopeiuv'))
+    # print_probs(get_probs(model, device, artifacts, 'abefameiyzqr'))
+
+    # print_probs(get_probs(model, device, artifacts, 'yzst'))
+
+    # print_probs(get_probs(model, device, artifacts, 'abef'))
+    # print_probs(get_probs(model, device, artifacts, ''))
+
 
 
     #==========================================
