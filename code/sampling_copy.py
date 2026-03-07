@@ -18,9 +18,9 @@ import random
 from typing import Dict, List, Sequence, Tuple
 
 from torch import Tensor
-from code.task2 import *
+from task2 import *
 from collections import defaultdict
-from code.grad_descent import *
+from grad_descent import *
 
 
 @dataclass(frozen=True, slots=True)

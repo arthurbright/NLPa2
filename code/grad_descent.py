@@ -50,20 +50,26 @@ class CNFPCFG(nn.Module):
         for span in range(2, n+1):
             for i in range(n-span+1):
                 j = i + span - 1
+                val = torch.zeros(R, device=chart.device)
+
                 for k in range(i, j):
-                    left = chart[i, k]
-                    right = chart[k+1, j]
+                    left = chart[i, k].clone()
+                    right = chart[k+1, j].clone()
                     
                     # X -> YZ
                     # contraction
-                    chart[i,j] += torch.einsum(
+                    contrib = torch.einsum(
                         "xyz,y,z->x",
                         rules,
                         left,
                         right
                     )
+                    val = val + contrib
+                chart[i,j] = val
+
         
         start = self.start_probs()
+        # print(string, torch.dot(start, chart[0, n-1]))
         return torch.dot(start, chart[0, n-1])
     
     def next_token_dist(self, prefix, vocab):
@@ -89,22 +95,26 @@ def train(model: CNFPCFG, sample_prefixes_fn, probs_fn, vocab, epochs=500, lr=1e
         prefixes = sample_prefixes_fn()
         
         print("computing loss...")
+        ii = 0
         for prefix in prefixes:
-            # true_dist = probs_fn(prefix)  # dict
-            true_dist = {i: 1/26 for i in range(26)}
+            ii += 1
+            # print(ii)
+            true_dist = probs_fn(prefix)  # dict
+            # true_dist = {i: 1/26 for i in range(26)}
 
             true_probs = torch.tensor(
                 [true_dist[v] for v in vocab]
             )
-            
             pred_probs = model.next_token_dist(prefix, vocab)
-            
-            loss += F.kl_div(
-                pred_probs.log(),
+            log_pred = torch.log_softmax(pred_probs, dim=-1)
+
+            loss = loss + F.kl_div(
+                log_pred,
                 true_probs,
                 reduction='batchmean'
             )
         
+        print("backwarding")
         opt.zero_grad()
         loss.backward()
         opt.step()
