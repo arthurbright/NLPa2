@@ -312,86 +312,30 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     #===============================================
     # TASK 2: fill out csv
-    # id = 30
-    # with open('pcfg_scratch.csv', 'a') as f:
-    #     for pos, prefix in [
-    #         ('determiner', []),
-    #         ('number', []),
-    #         ('preposition', ['the', 'teacher', 'laughed']),
-    #         ('adjective', ['very']),
-    #         ('noun', ['the']),
-    #         ('verb_direct', ['the', 'teacher']),
-    #         ('verb_subjectless', ['the', 'teacher']),
-    #         ('adverb', ['the', 'teacher', 'called', 'the', 'students']),
-    #         ('intensifier', []),
-    #         ('modifier', ['the', 'teacher']),
-    #     ]:
-    #         p = get_probs(model, device, artifacts, prefix)
-    #         total = 0.0
-    #         for v in pos_to_token[pos]:
-    #             total += p[v]
+    # NOTE: this appends to the file; it also doesn't write the non-terminal rules since they were computed by hand.
+    id = 30
+    with open('pcfg_scratch.csv', 'a') as f:
+        for pos, prefix in [
+            ('determiner', []),
+            ('number', []),
+            ('preposition', ['the', 'teacher', 'laughed']),
+            ('adjective', ['very']),
+            ('noun', ['the']),
+            ('verb_direct', ['the', 'teacher']),
+            ('verb_subjectless', ['the', 'teacher']),
+            ('adverb', ['the', 'teacher', 'called', 'the', 'students']),
+            ('intensifier', []),
+            ('modifier', ['the', 'teacher']),
+        ]:
+            p = get_probs(model, device, artifacts, prefix)
+            total = 0.0
+            for v in pos_to_token[pos]:
+                total += p[v]
             
-    #         for v in pos_to_token[pos]:
-    #             f.write(f'{id},{pos_name_to_abrv[pos]},preterminal,{v},{p[v]/total}\n')
-    #             id += 1
+            for v in pos_to_token[pos]:
+                f.write(f'{id},{pos_name_to_abrv[pos]},preterminal,{v},{p[v]/total}\n')
+                id += 1
     # =================
-
-    # ====================================
-    # TASK 3: train on samples
-
-    assert set([artifacts.bos_id, artifacts.eos_id, artifacts.unk_id, artifacts.pad_id]) == set([0, 1, 2, 3])
-
-    def sample_prefixes(num_prefixes=100, max_len=6):
-        prefixes = []
-        for _i in range(num_prefixes):
-            prefix = []
-            for _ in range(random.randint(0, max_len)):
-                p = get_probs_int(prefix)
-                probs = list(p)[4:]
-                token_ids = range(4, 30)
-                token_id = random.choices(token_ids, probs)[0] - 4
-                prefix.append(token_id)
-            prefixes.append(prefix)
-        return prefixes
-    
-    def get_probs_int(tokens: list[int]):
-        prefix_ids = [artifacts.bos_id] + tokens
-        return _next_token_probs(model, prefix_ids=prefix_ids, device=device)
-    
-    R = 50
-    _vocab = list(range(26))
-    _model = CNFPCFG(R, _vocab)
-    torch.autograd.set_detect_anomaly(True)
-    # train(_model, sample_prefixes, get_probs_int, _vocab, epochs=50, lr=0.01)
-
-    word_probs = {}
-    # TASK 3: DFS all likely short words
-    def dfs(prefix, prob):
-        word_probs[prefix] = prob
-
-        if len(prefix) == 0:
-            return
-        
-        p = _get_probs(prefix)
-        for k, v in p.items():
-            if v > 0.0005:
-                if k[0] == '<':
-                    word_probs[prefix + ". "] = prob * v
-                else:
-                    dfs(prefix + k, prob * v)
-    
-    # dfs("", 1.0)
-    print_probs(word_probs, -1)
-    word_probs_2 = {k:v for k, v in word_probs.items() if len(k) % 4 == 0}
-    print_probs(word_probs_2, -1)
-
-    # find all aligned 2-grams
-    seen2 = set()
-    for k in word_probs_2:
-        for i in range(4, len(k), 4):
-            seen2.add(k[i:i + 4])
-    print(seen2, len(seen2))
-    print(len(word_probs_2))    
     
     # print_probs(get_probs(model, device, artifacts, 'yzstijopeiuv'))
     # print_probs(get_probs(model, device, artifacts, 'abefameiyzqr'))

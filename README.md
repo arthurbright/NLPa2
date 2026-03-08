@@ -3,14 +3,30 @@ Method: Manual inspection of the transformer's next token probabilities.
 Eg for cats/dogs/mice, I print the next token probabilities afer BOS, and take their normalized probabilities. For 'the', just take the transformer probability of 'the' at BOS. For chase/like, take probabilities after prefix 'the cats'.
 
 # Task 2
-First, I manually inspected ~100 outputs of the transformer. From those, I was able to deduce that the parts of speech were NN, DT, CD, VB (both direct and indirect (subjectless)), MOD (modifier), JJ, ADV (adverb), INT (intensifier), and PP. "Direct" verbs are always followed by a noun subject, whereas "indirect" verbs may terminate the sentence or be followed by a preposition.
+First, I manually inspected ~100 outputs of the transformer. From those, I was able to deduce that the parts of speech were NN, DT, CD, VB (both direct and indirect (subjectless)), MOD (modifier), JJ, ADV (adverb), INT (intensifier), and PP. "Direct" verbs are always followed by a noun subject, whereas "indirect" verbs may terminate the sentence or be followed by a preposition. I first outlined my CFG in `scratch2.txt` before computing probabilities.
 
-Then, I sorted the terminals into their parts of speech (seen in `task2.py`), and ran aggregations over the transformer's `next_probs` to deduce the probabilities for nonterminals and preterminals. For example, the probabilities for each determiner can simply be determined by taking the model's `next_probs` after BOS and normalizing. The same applies for numbers and intensifiers, since they lead NP's. Most other computations were fairly simple; eg Pr(sentence ends in adverb | sentence contains modifier) could be computed by looking at `next_probs("the students will call the teachers")`.
+Then, I sorted the terminals into their parts of speech (seen in `task2.py`), and ran aggregations over the transformer's `next_probs` to deduce the probabilities for nonterminals and preterminals.  The nonterminal probability calculations were done manually, as there were only 18 of them (and many of which were trivial), while the preterminal probabilities were calculated in the modified `sampling.py` (see section "TASK 2: ..."). For example, the probabilities for each determiner can simply be determined by taking the model's `next_probs` after BOS and normalizing. The same applies for numbers and intensifiers, since they lead NP's. Most other computations were fairly simple; eg Pr(sentence ends in adverb | sentence contains modifier) could be computed by looking at `next_probs("the students will call the teachers")` and aggregating probabilities over all adverbs vs EOS.
 
-The most complex calculation was determining the probabilities for the branching of a NP. This involved a system of equations involving the four variables Pr(sentence terminates in an indirect verb), Pr(sentence has indirect verb -> preposition), Pr(sentence has direct verb), and Pr(sentence terminates in adverb). The second half of `scratch2.txt` roughly shows my process in solving the system. 
+The most complex calculation was determining the probabilities for the branching of a VP, given no modifier was present. I did this by a system of equations involving the four variables Pr(sentence terminates in an indirect verb), Pr(sentence has (indirect verb, preposition)), Pr(sentence has direct verb), and Pr(sentence terminates in adverb). The second half of `scratch2.txt` shows my process in solving the system. 
 
-Aggregation code is in the modified `sampling.py`, as well as code to get preterminal probabilities. This code is in the commented out section "TASK 2: fill out csv".
-
-I noticed some discrepances in probabilities depending on whether a modifier was present, so I made "sentences with a modifier" a separate case with different direct/indirect verb distributions.
+I noticed some discrepances in verb distribution depending on whether a modifier was present before the verb, so I made "sentences with a modifier" a separate case with different direct/indirect verb distributions.
 
 Scratch work in `scratch.txt` and `scratch2.txt` (messy)
+
+# Task 3
+Failed attempts outlined at end.
+
+Successful strategy:
+- Generated 70k+ samples
+- Through manual observation, I noticed that characters occur regularly in pairs, and pairs occur regularly in pairs themselves (4 character groups -  "quads"). 99.99% of generated samples had length divisible by 4
+- Only 16 distinct pairs and 60 distinct quads occur, after filtering outliers resulting from transformer noise.
+- Using the transformer's next token probabilities, I grouped pairs together based on if they had close next-pair distributions. This yielded 8 distinct "types" of pairs; these likely represent different children non-terminals of the same parent. Similarly, there are 5 distinct "types" of quads. Code: `data_analysis.py`
+- From here, I translated every sample into an encoded sequence of quads (as a form of compression). These can be seen in `code/quadline.txt`. I tried to manually look for patterns; I was able to concisely describe all samples of lengths 12, 16, 20, and 28, but I gave up for 32. Eventually, I decided to sacrifice the rule limit and automatically generate the PCFG for sequences of quads. This was simply based off conditionals of the next character given the total length and prefix seen so far. Code: `generate_rules.py`
+
+The samples I generated are in files `outputX.txt`. To re-generate my final CSV, run `data_analysis.py` and then `generate_rules.py`.
+
+### Failed Attempts
+There may be dead code/commented code throughout; these were mostly from failed attempts. Failed strategies:
+- Manual inspection of quad sequences
+- Running inside/outside algorithm, from a public python implementation online. Too slow, and not effective
+- Running sample-based gradient descent, code generated by ChatGPT. Too slow, unclear if effective.

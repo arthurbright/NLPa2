@@ -90,7 +90,7 @@ def similar_dist(d1, d2, ERR = 0.1, topk = 5):
     return _similar_dist(d1, d2) and _similar_dist(d2, d1)
 
 # pair analysis
-if False:
+if True:
     for pair1 in pairs:
         print("PAIR: ", pair1)
         ab_dist = _get_probs_multi(pair1, 2)
@@ -103,7 +103,7 @@ if False:
 
 
 # quad analysis:
-if False:
+if True:
     q_to_dist = {}
     for q in quads:
         q_to_dist[q] = _get_probs_multi(q, 4)
