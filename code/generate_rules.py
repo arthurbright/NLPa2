@@ -80,50 +80,66 @@ for line in lines:
     if len(line) not in lens: continue
     len_to_cnt[len(line)] += lines[line]
     total_cnt += lines[line]
-# lens = [3]
-for l in lens:
-    TH = 10
-    d = {k: v for k, v in lines.items() if len(k) == l and ((l < 8 and v >= TH) or v > 1)}
-    # build series of conditionals
+lines = [l for l in lines if len(l) in lens and lines[l] > 12]
 
-    trie = pygtrie.CharTrie()
-    for k in d:
-        trie[k] = d[k]
+# REDUCE THINGS FIRST
 
-    def next_char_count(prefix):
-        try:
-            _i = trie.items(prefix=prefix)
-        except KeyError as _:
-            print("no prefix", f"'{prefix}'")
-            return {}
-        ans = defaultdict(int)
-        for k, v in _i:
-            if len(k) > len(prefix):
-                ans[k[len(prefix)]] += v
-        return ans
-    
-    seen_prefixes = set()
 
-    todo = [""]
-    # BFS
-    while len(todo) > 0:
-        cur_prefix = todo.pop()
-        probs = next_char_count(cur_prefix)
-        total = sum(probs.values())
-        if len(cur_prefix) == l - 2:
-            for c in probs:
-                last_probs = next_char_count(cur_prefix + c)
-                for c2 in last_probs:
+
+rules2 = []
+if True:
+    for l in lens:
+        TH = 10
+        d = {k: v for k, v in lines.items() if len(k) == l and ((l < 8 and v >= TH) or v > 1)}
+        # build series of conditionals
+
+        trie = pygtrie.CharTrie()
+        for k in d:
+            trie[k] = d[k]
+
+        def next_char_count(prefix):
+            try:
+                _i = trie.items(prefix=prefix)
+            except KeyError as _:
+                print("no prefix", f"'{prefix}'")
+                return {}
+            ans = defaultdict(int)
+            for k, v in _i:
+                if len(k) > len(prefix):
+                    ans[k[len(prefix)]] += v
+            return ans
+        
+        seen_prefixes = set()
+
+        todo = [""]
+        # BFS
+        while len(todo) > 0:
+            cur_prefix = todo.pop()
+            probs = next_char_count(cur_prefix)
+            total = sum(probs.values())
+            if len(cur_prefix) == l - 2:
+                for c in probs:
+                    last_probs = next_char_count(cur_prefix + c)
+                    for c2 in last_probs:
+                        lhs = f"n{l}{cur_prefix}" if len(cur_prefix) > 0 else "S"
+                        rules2.append((lhs, tetra(c), tetra(c2), last_probs[c2]/total))
+            else:
+                for c in probs:
                     lhs = f"n{l}{cur_prefix}" if len(cur_prefix) > 0 else "S"
-                    rules.append((lhs, tetra(c), tetra(c2), last_probs[c2]/total))
-        else:
-            for c in probs:
-                lhs = f"n{l}{cur_prefix}" if len(cur_prefix) > 0 else "S"
-                _p = probs[c]/total
-                if len(cur_prefix) == 0: _p = _p * len_to_cnt[l]/total_cnt
-                rules.append((lhs, tetra(c), f"n{l}{cur_prefix + c}", _p))
-                todo.append(cur_prefix + c)
+                    _p = probs[c]/total
+                    if len(cur_prefix) == 0: _p = _p * len_to_cnt[l]/total_cnt
+                    rules2.append((lhs, tetra(c), f"n{l}{cur_prefix + c}", _p))
+                    todo.append(cur_prefix + c)
+
+
+
+
+
+
+# ===================================================
 id = 0
+
+rules.extend(rules2)
 with open('pcfg_scratch.csv', 'w') as f:
     f.write('ID,LHS,LHS Type,RHS,Probability\n')
     for r in rules:

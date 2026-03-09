@@ -1,162 +1,208 @@
-import math
+import itertools
+from collections import defaultdict, Counter
+
+# Example input: list of (string, count)
+import pickle
+with open("code/quadline.pickle", 'rb') as f:
+    samples = pickle.load(f)
+    print(sum([v for v in samples.values()]))
+samples = [(k, v) for k, v in samples.items() if len(k) in [3, 4, 5, 6, 7, 8] and v > 12]
+
+import numpy as np
 from collections import defaultdict
 
+# -----------------------------
+# 1. Input: sampled strings with counts
+# -----------------------------
+# samples = [
+#     ("ABAC", 5),
+#     ("BCAC", 3),
+#     ("ACAB", 2),
+#     # add your data here
+# ]
 
-def js_divergence(p, q):
-    keys = set(p) | set(q)
-    m = {k: (p.get(k,0)+q.get(k,0))/2 for k in keys}
+terminals = set()
+for s, _ in samples:
+    terminals.update(s)
+terminals = list(terminals)  # 6 terminals assumed
 
-    def kl(a,b):
-        s=0
-        for k in keys:
-            if a.get(k,0) > 0:
-                s += a[k]*math.log(a[k]/b[k])
-        return s
+# -----------------------------
+# 2. Define grammar skeleton
+# -----------------------------
+num_nonterminals = 15
+nonterminals = [f"N{i}" for i in range(num_nonterminals)]
+start_symbol = "S"  # designate starting symbol
 
-    return (kl(p,m)+kl(q,m))/2
+# replace first non-terminal with S
+nonterminals[0] = start_symbol
 
+# CNF grammar rules: two types
+binary_rules = []
+terminal_rules = []
 
-def build_automaton(rules):
-    transitions = defaultdict(dict)
-    terminals = set()
+np.random.seed(42)
+for nt in nonterminals:
+    # terminal rules
+    for t in terminals:
+        if np.random.rand() < 0.2:
+            terminal_rules.append((nt, t, np.random.rand()))
+    # binary rules
+    for _ in range(2):
+        left = np.random.choice(nonterminals)
+        right = np.random.choice(nonterminals)
+        binary_rules.append((nt, left, right, np.random.rand()))
 
-    for A,B,C,p in rules:
-
-        # binary rule A → T_x B
-        if C is not None and B[0] == B[1]:
-            x = B
-            transitions[A][x] = (C,p)
-            terminals.add(x)
-
-    return transitions, terminals
-
-
-def emission_distribution(transitions):
-    dist = {}
-
-    for s in transitions:
-        d = {}
-        for x,(t,p) in transitions[s].items():
-            d[x] = p
-        dist[s] = d
-
-    return dist
-
-
-def merge_states(transitions, threshold):
-
-    dist = emission_distribution(transitions)
-    states = list(transitions.keys())
-
-    while True:
-
-        best = None
-        best_d = float("inf")
-
-        for i in range(len(states)):
-            for j in range(i+1,len(states)):
-
-                s1 = states[i]
-                s2 = states[j]
-
-                d = js_divergence(dist[s1], dist[s2])
-
-                if d < best_d:
-                    best_d = d
-                    best = (s1,s2)
-
-        if best is None or best_d > threshold:
-            break
-
-        s1,s2 = best
-
-        # merge s2 into s1
-        for x,(t,p) in transitions[s2].items():
-
-            if x in transitions[s1]:
-                t1,p1 = transitions[s1][x]
-                transitions[s1][x] = (t1, p1+p)
-            else:
-                transitions[s1][x] = (t,p)
-
-        del transitions[s2]
-        states.remove(s2)
-
-        # update incoming edges
-        for s in transitions:
-            for x,(t,p) in list(transitions[s].items()):
-                if t == s2:
-                    transitions[s][x] = (s1,p)
-
-        dist = emission_distribution(transitions)
-
-    return transitions
-
-
-def normalize_transitions(transitions):
-
-    for s in transitions:
-        total = sum(p for _,p in transitions[s].values())
-        for x,(t,p) in transitions[s].items():
-            transitions[s][x] = (t,p/total)
-
-
-def automaton_to_pcfg(transitions, terminals):
-
-    rules = []
-
-    for A in transitions:
-        for x,(B,p) in transitions[A].items():
-
-            T = "T_"+x
-            rules.append((A,T,B,p))
-
-    # for x in terminals:
-    #     rules.append(("T_"+x, x, None, 1.0))
-
-    return rules
-
-
-def compress_pcfg(rules, merge_threshold=0.02):
-
-    transitions, terminals = build_automaton(rules)
-
-    transitions = merge_states(transitions, merge_threshold)
-
-    normalize_transitions(transitions)
-
-    return automaton_to_pcfg(transitions, terminals)
-
-# ==============================================================
-
-
-rules = []
-with open('pcfg_scratch.csv', 'r') as f:
-    ii = -1
-    for line in f:
-        ii += 1
-        if ii == 0: continue
-        line = line.split(",")
-        # print(line)
-        if line[2] == 'nonterminal':
-            next = line[3].split()
-            rules.append((line[1], next[0], next[1], float(line[4])))
-
-print(len(rules))
-compressed_rules = compress_pcfg(rules, merge_threshold=0.3)
-print(compressed_rules, len(compressed_rules))
-
-id = 60
-with open('pcfg_scratch.csv', 'w') as w:
-    with open('pcfg3_pre.csv', 'r') as f:
-        for line in f:
-            w.write(line)
-    
+# Normalize function
+def normalize_rules(rules):
+    grouped = defaultdict(list)
     for r in rules:
-        id += 1
-        w.write(f"{id},{r[0]},nonterminal,{r[1]} {r[2]},{r[3]}\n")
+        grouped[r[0]].append(r)
+    normed = []
+    for nt, group in grouped.items():
+        total = sum(r[-1] for r in group)
+        if total == 0:  # avoid division by zero
+            total = 1.0
+        for r in group:
+            normed.append(r[:-1] + (r[-1] / total,))
+    return normed
+
+terminal_rules = normalize_rules(terminal_rules)
+binary_rules = normalize_rules(binary_rules)
+
+# -----------------------------
+# 3. Inside algorithm
+# -----------------------------
+binary_dict = defaultdict(list)
+for parent, left, right, prob in binary_rules:
+    binary_dict[parent].append((left, right, prob))
+
+terminal_dict = defaultdict(list)
+for parent, term, prob in terminal_rules:
+    terminal_dict[parent].append((term, prob))
+
+def inside(s):
+    n = len(s)
+    chart = {nt: np.zeros((n, n)) for nt in nonterminals}
+    # terminals
+    for i, c in enumerate(s):
+        for nt in nonterminals:
+            for t, p in terminal_dict.get(nt, []):
+                if t == c:
+                    chart[nt][i, i] = p
+    # binary rules
+    for l in range(2, n + 1):
+        for i in range(n - l + 1):
+            j = i + l - 1
+            for nt in nonterminals:
+                for left, right, p in binary_dict.get(nt, []):
+                    for k in range(i, j):
+                        chart[nt][i, j] += p * chart[left][i, k] * chart[right][k + 1, j]
+    return chart
+
+# -----------------------------
+# 4. EM iterations
+# -----------------------------
+num_iterations = 20
+for it in range(num_iterations):
+    print(it)
+    binary_counts = defaultdict(float)
+    terminal_counts = defaultdict(float)
+    nt_counts = defaultdict(float)
+    
+    for s, count in samples:
+        n = len(s)
+        chart = inside(s)
+        total_prob = chart[start_symbol][0, n-1]
+        if total_prob == 0:
+            continue
+        # terminal counts
+        for i, c in enumerate(s):
+            for nt in nonterminals:
+                for t, p in terminal_dict.get(nt, []):
+                    if t == c:
+                        terminal_counts[(nt, t)] += count * chart[nt][i,i] / total_prob
+                        nt_counts[nt] += count * chart[nt][i,i] / total_prob
+        # binary counts
+        for l in range(2, n + 1):
+            for i in range(n - l + 1):
+                j = i + l - 1
+                for nt in nonterminals:
+                    for left, right, p in binary_dict.get(nt, []):
+                        sum_split = 0
+                        for k in range(i, j):
+                            sum_split += chart[left][i,k] * chart[right][k+1,j]
+                        binary_counts[(nt, left, right)] += count * p * sum_split / total_prob
+                        nt_counts[nt] += count * p * sum_split / total_prob
+    # re-estimate probabilities
+    for idx, (nt, t, _) in enumerate(terminal_rules):
+        prob = terminal_counts[(nt, t)] / nt_counts[nt] if nt_counts[nt] > 0 else 0.0
+        terminal_rules[idx] = (nt, t, prob)
+    for idx, (nt, l, r, _) in enumerate(binary_rules):
+        prob = binary_counts[(nt, l, r)] / nt_counts[nt] if nt_counts[nt] > 0 else 0.0
+        binary_rules[idx] = (nt, l, r, prob)
+    
+    # -----------------------------
+    # 5. Remove very low-probability rules and re-normalize
+    # -----------------------------
+    terminal_rules = [(nt,t,p) for (nt,t,p) in terminal_rules if p > 0.001]
+    binary_rules = [(nt,l,r,p) for (nt,l,r,p) in binary_rules if p > 0.001]
+    terminal_rules = normalize_rules(terminal_rules)
+    binary_rules = normalize_rules(binary_rules)
+
+# -----------------------------
+# 6. Print final PCFG
+# -----------------------------
+print("Learned PCFG with start symbol S:")
+for nt, t, p in terminal_rules:
+    print(f"{nt} -> {t} [p={p:.3f}]")
+for nt, l, r, p in binary_rules:
+    print(f"{nt} -> {l} {r} [p={p:.3f}]")
+print(len(binary_rules))
 
 
-# print(automaton_to_pcfg(compressed_rules, []))
-# ("S","a","A",0.4)
-# ("S","b","B",0.6)
+import random
+from collections import defaultdict
+
+# -----------------------------
+# 1. Build dictionaries for fast sampling
+# -----------------------------
+# terminal_rules and binary_rules are outputs from the EM PCFG
+# Format: terminal_rules = [(nt, t, p), ...], binary_rules = [(nt, l, r, p), ...]
+
+term_dict = defaultdict(list)
+for nt, t, p in terminal_rules:
+    term_dict[nt].append((t, p))
+
+bin_dict = defaultdict(list)
+for nt, l, r, p in binary_rules:
+    bin_dict[nt].append((l, r, p))
+
+# helper: choose one option weighted by probabilities
+def weighted_choice(options):
+    items, weights = zip(*options)
+    return random.choices(items, weights=weights, k=1)[0]
+
+# -----------------------------
+# 2. Recursive sampling function
+# -----------------------------
+def sample(nt="S"):
+    # terminal rule?
+    if nt in term_dict and (nt not in bin_dict or random.random() < 0.5):
+        t = weighted_choice(term_dict[nt])
+        return t
+    # binary rule
+    if nt in bin_dict:
+        l, r = weighted_choice([(l, r, p) for l, r, p in bin_dict[nt]])
+        return sample(l) + sample(r)
+    # fallback: if no rule exists, pick terminal if possible
+    if nt in term_dict:
+        return weighted_choice(term_dict[nt])
+    return ""  # empty string fallback
+
+# -----------------------------
+# 3. Generate N samples
+# -----------------------------
+N = 10
+for _ in range(N):
+    s = sample("S")
+    print(s)
